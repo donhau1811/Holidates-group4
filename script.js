@@ -73,60 +73,83 @@ document
   .querySelector("#languages-list-btn")
   .addEventListener("click", renderLanguages);
 
-document.querySelector("#holidays-btn").addEventListener("click", () => {
-  renderHolidays();
-});
 
-const getHolidays = async () => {
-  try {
-    let countryKey = document.querySelector("#country-query").value;
-    if (countryKey === "") {
-      countryKey = "VN";
+  const getHolidays = async (country, year, month, day, search) => {
+    try {
+      const url = search
+        ? `https://holidayapi.com/v1/holidays?pretty&key=${API_KEY}&search=${search}&year=${year}&month=${month}&day=${day}`
+        : `https://holidayapi.com/v1/holidays?pretty&key=${API_KEY}&country=${country}&year=${year}&month=${month}&day=${day}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log("data", data);
+      return data;
+    } catch (err) {
+      console.log("err", err);
     }
-    let month = document.querySelector("#month-query").value;
-    let day = document.querySelector("#day-query").value;
-    changeCountry(countryKey);
-    const url = `https://holidayapi.com/v1/holidays?pretty&key=${API_KEY}&country=${countryKey}&year=2021&month=${month}&day=${day}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    // console.log("data", data)
-    return data;
-  } catch (err) {
-    console.log("err", err);
-  }
-};
-
-const renderHolidays = async () => {
-  try {
-    const data = await getHolidays();
-    const holidayList = document.querySelector("#holidays-list");
-    const ulHolidayList = holidayList.children[1];
-    ulHolidayList.innerHTML = "";
-    data.holidays.forEach((holiday, index) => {
-      const x = document.createElement("li");
-      x.innerHTML = `<div class="bullet">${index + 1}</div>
-      <div class="li-wrapper">
-        <div class="li-title">${holiday.name}</div>
-        <div class="li-text">${holiday.weekday.date.name} , ${holiday.date}</div>
-      </div>`;
-      ulHolidayList.appendChild(x);
-    });
-  } catch (err) {
-    console.log("err", err);
-  }
-};
-
-const changeCountry = async (countryCheck) => {
-  try {
-    const data = await getCountries();
-    const holidayList = document.querySelector("#holidays-list");
-    const ulHolidayTitle = holidayList.children[0];
-    data.countries.forEach((country, index) => {
-      if(country.code === countryCheck) {
-        ulHolidayTitle.innerHTML = `Holidays of ${country.name}`
+  };
+  
+  const renameCountry = async (countryInput) => {
+    const holidaysList = document.getElementById("holidays-list");
+    const heading = holidaysList.children[0];
+    try {
+      const arr = await getCountries();
+      console.log(arr);
+      const country = arr.countries.find((obj) => obj.code === countryInput);
+      console.log(country);
+      if (country) {
+        heading.innerHTML = `Holidays of ${country.name}`;
+      } else {
+        heading.innerHTML = `Holidays of Countries`;
       }
-    })
-  } catch(err) {
-    console.log("err", err);
-  }
-}
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  
+  const renderHolidays = async () => {
+    const countryInputValue =
+      document.querySelector("#country-query").value || "VN";
+  
+    const yearInputValue =
+      Number(document.querySelector("#year-query").value) || 2021;
+    const monthInputValue = Number(document.querySelector("#month-query").value);
+    const dayInputValue = Number(document.querySelector("#day-query").value);
+    const searchInputValue = document.querySelector("#search-query").value;
+  
+    if (!searchInputValue) {
+      renameCountry(countryInputValue.toUpperCase());
+    } else {
+      renameCountry();
+    }
+    try {
+      const data = await getHolidays(
+        countryInputValue,
+        yearInputValue,
+        monthInputValue,
+        dayInputValue,
+        searchInputValue
+      );
+      const holidaysList = document.getElementById("holidays-list");
+      const ulHolidaysList = holidaysList.children[1];
+      console.log(ulHolidaysList);
+      ulHolidaysList.innerHTML = "";
+      data.holidays.forEach((holiday, index) => {
+        const x = document.createElement("li");
+        x.innerHTML = `<div class="bullet">${index + 1}</div>
+        <div class="li-wrapper">
+          <div class="li-title">${holiday.name}</div>
+          <div class="li-text">${holiday.weekday.date.name} - ${
+          holiday.date
+        }</div>
+        </div>`;
+        ulHolidaysList.appendChild(x);
+      });
+    } catch (error) {
+      console.log("err", error);
+    }
+  };
+  
+  document
+    .querySelector("#holidays-btn")
+    .addEventListener("click", renderHolidays);
+  
